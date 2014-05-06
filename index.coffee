@@ -32,13 +32,13 @@ binaryCheck = (bin, opts, cb) ->
   "ruby"
   "compass"
   "git"
-  "yuo"
+  "yo"
 ].forEach (el) ->
   checks.push binaries = (cb) ->
     binaryCheck el, null, cb
     return
 
-checks.push home = (cb) ->
+home = (cb) ->
   win = process.platform is "win32"
   home = (if win then process.env.USERPROFILE else process.env.HOME)
   cb null,
@@ -46,6 +46,51 @@ checks.push home = (cb) ->
     message: not home and "environment variable is not set. This is required to know where your home directory is. Follow this guide: https://github.com/sindresorhus/guides/blob/master/set-environment-variables.md"
     fail: not home
   return
+checks.push home
+
+node = (cb) ->
+  try
+    bin = which.sync("node")
+  catch err
+    return cb(null,
+      title: "Node.js"
+      message: "Not installed. Please install from http://nodejs.org"
+      fail: true
+    )
+  execFile bin, ["--version"], (err, stdout) ->
+    return cb(err) if err
+    version = stdout.trim()
+    pass = semver.satisfies(version, ">=0.10.0")
+    cb null,
+      title: "Node.js"
+      message: not pass and version + " is outdated. Please update at http://nodejs.org"
+      fail: not pass
+    return
+  return
+checks.push node
+
+npm = (cb) ->
+  try
+    bin = which.sync("npm")
+  catch err
+    return cb(null,
+      title: "npm"
+      message: "Not installed. Please install Node.js (which bundles npm) from http://nodejs.org"
+      fail: true
+    )
+  execFile bin, ["--version"], (err, stdout) ->
+    return cb(err)  if err
+    version = stdout.trim()
+    pass = semver.satisfies(version, ">=1.3.10")
+    cb null,
+      title: "npm"
+      message: not pass and version + " is outdated. Please update by running: npm update --global npm"
+      fail: not pass
+
+    return
+
+  return
+checks.push npm
 
 
 module.exports = (cb) ->
